@@ -1,0 +1,64 @@
+{
+  "name": "chatapp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --project jsconfig.json",
+    "test": "node --test tests/unit/*.test.mjs",
+    "migrate:user-v2": "node scripts/migrate-user-v2.mjs",
+    "migrate:product-v2": "node scripts/migrate-product-v2.mjs",
+    "verify:v2": "node scripts/verify-v2-migration.mjs",
+    "test:integration": "node --experimental-loader ./scripts/test-alias-loader.mjs --test tests/integration/*.integration.test.mjs",
+    "test:all": "pnpm test && pnpm test:integration",
+    "e2e:seed": "node --experimental-loader ./scripts/test-alias-loader.mjs ./scripts/e2e/seed.mjs",
+    "e2e:api": "node --test tests/e2e/api-smoke.mjs",
+    "e2e": "pnpm e2e:seed && pnpm e2e:api",
+    "e2e:browser": "pnpm e2e:seed && node ./scripts/e2e/run-browser.mjs",
+    "e2e:browser:ui": "playwright test --ui"
+  },
+  "pnpm": {
+    "supportedArchitectures": {
+      "os": [
+        "current",
+        "linux"
+      ],
+      "cpu": [
+        "current",
+        "x64"
+      ]
+    }
+  },
+  "dependencies": {
+    "@img/sharp-linux-x64": "^0.35.3",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.2",
+    "@vercel/analytics": "^2.0.1",
+    "axios": "^1.18.1",
+    "bcryptjs": "^3.0.3",
+    "browser-image-compression": "^2.0.2",
+    "dotenv": "^17.4.2",
+    "framer-motion": "^12.42.2",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.25.0",
+    "mongoose": "^9.7.4",
+    "next": "16.3.2",
+    "nodemailer": "^9.0.5",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/postcss": "^4",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.2",
+    "tailwindcss": "^4"
+  }
+}

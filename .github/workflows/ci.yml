@@ -1,0 +1,47 @@
+name: Auno V2 CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+    env:
+      MONGO_URI: mongodb://127.0.0.1:27017/auno_test
+      JWT_ACCESS_SECRET: auno-ci-access-secret-012345678901234567890123
+      UPSTASH_REDIS_REST_URL: http://127.0.0.1:6379
+      UPSTASH_REDIS_REST_TOKEN: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm verify:v2
+      - run: pnpm test
+      - run: pnpm test:integration
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm audit --audit-level=high
