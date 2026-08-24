@@ -2,33 +2,35 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import ProductCard from '@/components/product/ProductCard';
 import { listFavorites, removeFavorite } from '@/features/favorites/api';
 
 export default function FavoritesPage() {
+  const router = useRouter();
   const [favoriteItems, setFavoriteItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch favorited items on mount
-useEffect(() => {
-  const fetchFavorites = async () => {
-    try {
-      setLoading(true);
-      const result = await listFavorites();
-      setFavoriteItems(result.items || []);
-    } catch (err) {
-      if (err.response?.status === 401) {
-        window.location.href = '/login?redirect=/favorites';
-      } else {
-        console.error('Failed to load favorites:', err);
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        setLoading(true);
+        const result = await listFavorites();
+        setFavoriteItems(result.items || []);
+      } catch (err) {
+        if (err.status === 401 || err.response?.status === 401) {
+          router.push('/login?redirect=/favorites');
+        } else {
+          console.error('Failed to load favorites:', err);
+        }
+      } finally {
+        setLoading(false);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  fetchFavorites();
-}, []);
+    fetchFavorites();
+  }, [router]);
 
   // Handle removing an item from favorites directly on this page
   const removeFavoriteHandler = async (e, productId) => {

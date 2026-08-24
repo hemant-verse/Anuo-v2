@@ -4,8 +4,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import api, { notifyAuthChanged, setAccessToken } from '@/lib/axios';
-import { useRouter,useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { login } from '@/features/auth/api';
+import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
 
 
 // Pure, SSR-friendly animation definitions
@@ -44,44 +46,27 @@ export default function LoginClient() {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const response = await api.post('/api/auth/login', data);
-
-      setAccessToken(response.data?.data?.accessToken); // Store the new access token in memory
-      notifyAuthChanged();
-      setSuccess(response.data?.data?.message || 'Login successful.');
+      await login({ email: data.email, password: data.password });
+      setSuccess('Login successful.');
       e.target.reset();
-      
+
       const redirectUrl = searchParams.get('redirect') || '/feed';
       router.push(redirectUrl);
       router.refresh();
-
     } catch (err) {
-      if (err.response) {
-        const serverError = err.response.data;
-        if (serverError?.error?.details || serverError?.details) {
-          console.log('Zod Field Errors:', serverError.details);
-
-          const errorsObj = {};
-          (serverError?.error?.details || serverError.details).forEach((issue) => {
-            // Safe check: If path exists and has an element, use it; otherwise, fallback to global or custom key
-            const fieldName = issue.path && issue.path.length > 0 ? issue.path[0] : 'global';
-
-            if (fieldName === 'global') {
-              // If it's an object-level constraint issue, bubble it to the global alert bar
-              setError(issue.message);
-            } else {
-              // Assign the specific error message to the field matching the 'name' attribute
-              errorsObj[fieldName] = issue.message;
-            }
-          });
-
-          setFieldErrors(errorsObj);
-
-        } else {
-          setError(serverError.error || 'Something went wrong.');
-        }
+      if (err.details?.length) {
+        const errorsObj = {};
+        err.details.forEach((issue) => {
+          const fieldName = issue.path?.length > 0 ? issue.path[0] : 'global';
+          if (fieldName === 'global') {
+            setError(issue.message);
+          } else {
+            errorsObj[fieldName] = issue.message;
+          }
+        });
+        setFieldErrors(errorsObj);
       } else {
-        setError('Network error. Please try again later.');
+        setError(err.message || 'Something went wrong.');
       }
     } finally {
       setLoading(false);
@@ -170,41 +155,35 @@ function CardContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
         </Link>
       </div>
 
-       {/* System Alerts & Messages */}
-      {error && (
-        <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold tracking-wide">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div role="status" aria-live="polite" className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold tracking-wide">
-          {success}
-        </div>
-      )}
+      {/* System Alerts & Messages */}
+      {error && <Alert variant="error" message={error} id="login-error" className="mb-4" />}
+      {success && <Alert variant="success" message={success} id="login-success" className="mb-4" />}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="login-email" className="sr-only">College email address</label>
-          <input 
+          <input
             id="login-email"
-            type="email" 
-            placeholder="College Email Address" 
+            type="email"
+            placeholder="College Email Address"
             name="email"
             className="w-full bg-zinc-50 border-0 focus:ring-2 focus:ring-zinc-950 rounded-2xl py-3.5 px-5 text-sm font-medium placeholder-zinc-400 text-zinc-900 transition-all outline-none"
             required
           />
+          {fieldErrors.email && <p className="text-xs font-bold text-rose-600 mt-1">{fieldErrors.email}</p>}
         </div>
 
         <div className="relative flex items-center">
           <label htmlFor="login-password" className="sr-only">Password</label>
-          <input 
+          <input
             id="login-password"
-            type={showPassword ? 'text' : 'password'} 
+            type={showPassword ? 'text' : 'password'}
             name="password"
-            placeholder="Password" 
+            placeholder="Password"
             className="w-full bg-zinc-50 border-0 focus:ring-2 focus:ring-zinc-950 rounded-2xl py-3.5 px-5 pr-12 text-sm font-medium placeholder-zinc-400 text-zinc-900 transition-all outline-none"
             required
           />
-          <button 
+          <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -217,6 +196,7 @@ function CardContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
             )}
           </button>
         </div>
+        {fieldErrors.password && <p className="text-xs font-bold text-rose-600 -mt-2">{fieldErrors.password}</p>}
 
         <div className="text-right">
           <Link href="/forgot-password" className="text-xs font-bold text-zinc-500 hover:text-zinc-950 underline underline-offset-2 transition-colors">
@@ -224,18 +204,9 @@ function CardContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
           </Link>
         </div>
 
-        <button 
-          type="submit" 
-          disabled={loading}
-          className="w-full bg-zinc-950 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70 text-white font-bold py-4 rounded-full text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-[0.98] mt-2"
-        >
-          {loading ? (
-            <span className="inline-flex items-center justify-center gap-2">
-              <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />
-              Signing in...
-            </span>
-          ) : 'Enter Dashboard'}
-        </button>
+        <Button type="submit" variant="primary" size="lg" loading={loading} loadingLabel="Signing in…" fullWidth className="mt-2">
+          Enter Dashboard
+        </Button>
       </form>
 
       <div className="mt-8 text-center">

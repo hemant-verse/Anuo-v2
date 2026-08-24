@@ -1,6 +1,6 @@
-import api from '@/lib/axios';
+import ApiClient from '@/lib/api/client';
 
 export async function listCategories() {
-  const response = await api.get('/api/categories');
-  return response.data?.data?.categories ?? [];
+  const data = await ApiClient.get('/api/categories');
+  return data?.data?.categories ?? [];
 }

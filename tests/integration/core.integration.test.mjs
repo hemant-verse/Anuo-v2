@@ -132,9 +132,10 @@ if (enabled) {
     ]);
     assert.equal([first, second].filter((result) => result.status === 'fulfilled').length, 1);
 
+    const fulfilledResult = first.status === 'fulfilled' ? first.value : second.value;
     const audit = await listAudit(identity, { page: 1, limit: 20 });
     assert.equal(audit.items.length, 1);
-    assert.equal((await Product.findById(product._id)).moderationStatus, 'APPROVED');
+    assert.equal((await Product.findById(product._id)).moderationStatus, fulfilledResult.moderationStatus);
     assert.equal(await AuditLog.countDocuments({ resourceId: product._id }), 1);
   });
 

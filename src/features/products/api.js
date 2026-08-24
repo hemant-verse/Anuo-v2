@@ -1,22 +1,23 @@
-import api from '@/lib/axios';
+import ApiClient from '@/lib/api/client';
 
-export async function listProducts({ page = 1, limit = 20, category = 'ALL', search = '', mine = false } = {}) {
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (category && category !== 'ALL') params.set('category', category);
-  if (search?.trim()) params.set('search', search.trim());
-  if (mine) params.set('mine', 'true');
-  const response = await api.get(`/api/products?${params.toString()}`);
-  return response.data?.data ?? { items: [], pagination: { page, limit, hasNextPage: false, total: 0 } };
+export async function listProducts({ page = 1, limit = 20, category = 'ALL', search = '', mine = false } = {}, config = {}) {
+  const params = { page: String(page), limit: String(limit) };
+  if (category && category !== 'ALL') params.category = category;
+  if (search?.trim()) params.search = search.trim();
+  if (mine) params.mine = 'true';
+
+  const data = await ApiClient.get('/api/products', params, config);
+  return data?.data ?? { items: [], pagination: { page, limit, hasNextPage: false, total: 0 } };
 }
 
-export async function getProduct(productId) {
-  const response = await api.get(`/api/products/${productId}`);
-  return response.data?.data?.product ?? response.data?.data ?? null;
+export async function getProduct(productId, config = {}) {
+  const data = await ApiClient.get(`/api/products/${productId}`, {}, config);
+  return data?.data?.product ?? data?.data ?? null;
 }
 
 export async function createProduct(payload) {
-  const response = await api.post('/api/products', payload);
-  return response.data?.data?.product ?? null;
+  const data = await ApiClient.post('/api/products', payload);
+  return data?.data?.product ?? null;
 }
 
 export async function createProductWithImage(payload, file) {
@@ -33,16 +34,16 @@ export async function createProductWithImage(payload, file) {
     if (value) body.append(key, value);
   }
 
-  const response = await api.post('/api/products', body);
-  return response.data?.data?.product ?? null;
+  const data = await ApiClient.post('/api/products', body);
+  return data?.data?.product ?? null;
 }
 
 export async function updateProduct(productId, payload) {
-  const response = await api.patch(`/api/products/${productId}`, payload);
-  return response.data?.data?.product ?? null;
+  const data = await ApiClient.patch(`/api/products/${productId}`, payload);
+  return data?.data?.product ?? null;
 }
 
 export async function deleteProduct(productId) {
-  const response = await api.delete(`/api/products/${productId}`);
-  return response.data?.data ?? null;
+  const data = await ApiClient.delete(`/api/products/${productId}`);
+  return data?.data ?? null;
 }

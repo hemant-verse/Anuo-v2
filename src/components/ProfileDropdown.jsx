@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks';
-import { notifyAuthChanged } from '@/lib/axios';
 
 export default function ProfileDropdown() {
   const router = useRouter();
@@ -42,7 +41,6 @@ export default function ProfileDropdown() {
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      notifyAuthChanged();
       setIsOpen(false);
       router.replace('/login');
     }

@@ -4,7 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import api from '@/lib/axios';
+import { requestPasswordReset, resetPassword } from '@/features/auth/api';
+import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
 
 const brandVariants = {
   hiddenMobile: { y: -60, x: 0, opacity: 0 },
@@ -116,14 +118,11 @@ function CardContent() {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await api.post('/api/auth/forgot-password', { email });
-      setMessage({ type: 'success', text: res.data.message });
+      await requestPasswordReset(email);
+      setMessage({ type: 'success', text: 'Reset code sent. Check your inbox.' });
       setStep('OTP_AND_PASSWORD_STEP');
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.error || 'Failed to send reset code.',
-      });
+      setMessage({ type: 'error', text: err.message || 'Failed to send reset code.' });
     } finally {
       setLoading(false);
     }
@@ -177,22 +176,11 @@ function CardContent() {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await api.post('/api/auth/reset-password', {
-        email,
-        otp: fullOtp,
-        newPassword,
-      });
-
-      setMessage({ type: 'success', text: res.data.message });
-
-      setTimeout(() => {
-        router.push('/login');
-      }, 1500);
+      await resetPassword({ email, otp: fullOtp, newPassword });
+      setMessage({ type: 'success', text: 'Password reset successfully.' });
+      setTimeout(() => { router.push('/login'); }, 1500);
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.error || 'Password reset failed. Please check your OTP code.',
-      });
+      setMessage({ type: 'error', text: err.message || 'Password reset failed. Please check your OTP code.' });
     } finally {
       setLoading(false);
     }
@@ -203,15 +191,12 @@ function CardContent() {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await api.post('/api/auth/forgot-password', { email });
-      setMessage({ type: 'success', text: res.data.message });
+      await requestPasswordReset(email);
+      setMessage({ type: 'success', text: 'Reset code resent. Check your inbox.' });
       setOtp(['', '', '', '', '', '']);
       if (inputRefs.current[0]) inputRefs.current[0].focus();
     } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.error || 'Failed to resend reset code.',
-      });
+      setMessage({ type: 'error', text: err.message || 'Failed to resend reset code.' });
     } finally {
       setResending(false);
     }
@@ -240,17 +225,7 @@ function CardContent() {
         </div>
       )}
 
-      {message.text && (
-        <div
-          className={`p-3.5 rounded-2xl text-xs font-bold mb-6 text-center border ${
-            message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20'
-              : 'bg-red-500/10 text-red-800 border-red-500/20'
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
+      {message.text && <Alert variant={message.type === 'success' ? 'success' : 'error'} message={message.text} id="forgot-message" className="mb-6" />}
 
       {/* STEP 1: REQUEST OTP */}
       {step === 'EMAIL_STEP' && (
@@ -267,14 +242,9 @@ function CardContent() {
               className="w-full bg-zinc-50 border-0 focus:ring-2 focus:ring-zinc-950 rounded-2xl py-3.5 px-5 text-sm font-medium placeholder-zinc-400 text-zinc-900 transition-all outline-none"
             />
           </div>
-
-          <button
-            type="submit"
-            disabled={loading || !email}
-            className="w-full bg-zinc-950 hover:bg-zinc-800 text-white font-bold py-4 rounded-full text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? 'Sending Code...' : 'Send Reset OTP Code'}
-          </button>
+          <Button type="submit" variant="primary" size="lg" loading={loading} loadingLabel="Sending Code…" disabled={!email} fullWidth>
+            Send Reset OTP Code
+          </Button>
         </form>
       )}
 
@@ -331,13 +301,9 @@ function CardContent() {
             </button>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading || otp.join('').length !== 6 || !newPassword}
-            className="w-full bg-zinc-950 hover:bg-zinc-800 text-white font-bold py-4 rounded-full text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-          >
-            {loading ? 'Resetting Password...' : 'Reset Password & Save'}
-          </button>
+          <Button type="submit" variant="primary" size="lg" loading={loading} loadingLabel="Resetting Password…" disabled={otp.join('').length !== 6 || !newPassword} fullWidth>
+            Reset Password &amp; Save
+          </Button>
         </form>
       )}
 

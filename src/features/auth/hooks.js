@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { getCurrentUser, logout as logoutRequest } from './api';
-import { setAccessToken } from '@/lib/axios';
+import ApiClient from '@/lib/api/client';
 
 const AuthContext = createContext(null);
 
@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
     try {
       await logoutRequest();
     } finally {
-      setAccessToken('');
+      ApiClient.clearToken();
       setUser(null);
       setChecked(true);
     }

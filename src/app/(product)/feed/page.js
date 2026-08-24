@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks';
 import ProductCard from '@/components/product/ProductCard';
 import { listProducts } from '@/features/products/api';
@@ -12,6 +13,7 @@ import ProfileDropdown from '@/components/ProfileDropdown';
 const PAGE_SIZE = 20;
 
 export default function FeedPage() {
+  const router = useRouter();
   // Feed & Product States
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -134,9 +136,9 @@ export default function FeedPage() {
     } catch (err) {
       setFavorites((prev) => ({ ...prev, [productId]: isFav }));
 
-      if (err.response?.status === 401) {
+      if (err.status === 401 || err.response?.status === 401) {
         const currentPath = encodeURIComponent(window.location.pathname);
-        window.location.assign(`/login?redirect=${currentPath}`);
+        router.push(`/login?redirect=${currentPath}`);
       } else {
         console.error('Failed to toggle favorite:', err);
       }

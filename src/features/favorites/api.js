@@ -1,18 +1,18 @@
-import api from '@/lib/axios';
+import ApiClient from '@/lib/api/client';
 
 export async function listFavorites() {
-  const response = await api.get('/api/favorites');
-  return response.data?.data ?? { items: [], favoriteIds: [] };
+  const data = await ApiClient.get('/api/favorites');
+  return data?.data ?? { items: [], favoriteIds: [] };
 }
 
 export async function addFavorite(productId) {
-  const response = await api.post(`/api/favorites/${productId}`);
-  return response.data?.data ?? null;
+  const data = await ApiClient.post(`/api/favorites/${productId}`);
+  return data?.data ?? null;
 }
 
 export async function removeFavorite(productId) {
-  const response = await api.delete(`/api/favorites/${productId}`);
-  return response.data?.data ?? null;
+  const data = await ApiClient.delete(`/api/favorites/${productId}`);
+  return data?.data ?? null;
 }
 
 export async function toggleFavorite(productId, isFavorited) {

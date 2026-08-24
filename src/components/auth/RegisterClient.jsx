@@ -4,8 +4,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import { register } from '@/features/auth/api';
+import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
 
 // Declare pure animation variants completely decoupled from window layout checks to avoid hydration errors
 const brandVariants = {
@@ -40,46 +42,29 @@ export default function RegisterClient() {
   const data = Object.fromEntries(formData.entries());
 
   try {
-    const response = await axios.post('/api/auth/register', data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    setSuccess(response.data?.data?.message || 'Registration successful.');
+    await register({ userName: data.userName, email: data.email, password: data.password });
+    setSuccess('Registration successful. Redirecting to verification…');
     e.target.reset();
-
-    // Pass the registered email to the verify page in query params
-    const userEmail = data.email || response.data?.data?.email || '';
+    const userEmail = data.email || '';
     router.replace(`/verify?email=${encodeURIComponent(userEmail)}`);
-    } catch (err) {
-      if (err.response) {
-        const serverError = err.response.data;
-        if (serverError?.error?.details || serverError?.details) {
-          console.log('Zod Field Errors:', serverError.details);
-
-          const errorsObj = {};
-          (serverError?.error?.details || serverError.details).forEach((issue) => {
-            const fieldName = issue.path && issue.path.length > 0 ? issue.path[0] : 'global';
-
-            if (fieldName === 'global') {
-              setError(issue.message);
-            } else {
-              errorsObj[fieldName] = issue.message;
-            }
-          });
-
-          setFieldErrors(errorsObj);
+  } catch (err) {
+    if (err.details?.length) {
+      const errorsObj = {};
+      err.details.forEach((issue) => {
+        const fieldName = issue.path?.length > 0 ? issue.path[0] : 'global';
+        if (fieldName === 'global') {
+          setError(issue.message);
         } else {
-          // Prefer explicit server `message` then `error` for better UX
-          setError(serverError?.error?.message || serverError?.message || serverError?.error || 'Something went wrong.');
+          errorsObj[fieldName] = issue.message;
         }
-      } else {
-        setError('Network error. Please try again later.');
-      }
-    } finally {
-      setLoading(false);
+      });
+      setFieldErrors(errorsObj);
+    } else {
+      setError(err.message || 'Something went wrong.');
     }
+  } finally {
+    setLoading(false);
+  }
 };
 
   return (
@@ -125,6 +110,7 @@ export default function RegisterClient() {
           error={error}
           success={success}
           loading={loading}
+          fieldErrors={fieldErrors}
         />
       </motion.div>
 
@@ -144,6 +130,7 @@ export default function RegisterClient() {
           error={error}
           success={success}
           loading={loading}
+          fieldErrors={fieldErrors}
         />
       </motion.div>
     </div>
@@ -170,7 +157,7 @@ function BrandContent() {
   );
 }
 
-function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, setAgreeTerms, error, success, loading }) {
+function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, setAgreeTerms, error, success, loading, fieldErrors = {} }) {
   return (
     <div className="max-w-md w-full mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -183,16 +170,8 @@ function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
       </div>
 
       {/* System Alerts & Messages */}
-      {error && (
-        <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold tracking-wide">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div role="status" aria-live="polite" className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold tracking-wide">
-          {success}
-        </div>
-      )}
+      {error && <Alert variant="error" message={error} id="register-error" className="mb-4" />}
+      {success && <Alert variant="success" message={success} id="register-success" className="mb-4" />}
 
       {/* Form Submission Framework */}
       <form onSubmit={handleSubmit} className="space-y-3.5">
@@ -206,6 +185,7 @@ function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
             className="w-full bg-zinc-50 border-0 focus:ring-2 focus:ring-zinc-950 rounded-2xl py-3 px-5 text-sm font-medium placeholder-zinc-400 text-zinc-900 transition-all outline-none"
             required
           />
+          {fieldErrors.userName && <p className="text-xs font-bold text-rose-600 mt-1">{fieldErrors.userName}</p>}
         </div>
 
         <div>
@@ -218,6 +198,7 @@ function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
             className="w-full bg-zinc-50 border-0 focus:ring-2 focus:ring-zinc-950 rounded-2xl py-3 px-5 text-sm font-medium placeholder-zinc-400 text-zinc-900 transition-all outline-none"
             required
           />
+          {fieldErrors.email && <p className="text-xs font-bold text-rose-600 mt-1">{fieldErrors.email}</p>}
         </div>
 
         <div className="relative flex items-center">
@@ -241,6 +222,7 @@ function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
             )}
           </button>
         </div>
+        {fieldErrors.password && <p className="text-xs font-bold text-rose-600 -mt-2">{fieldErrors.password}</p>}
 
         <div className="flex items-start gap-3 pt-1">
           <input
@@ -257,18 +239,9 @@ function FormContent({ handleSubmit, showPassword, setShowPassword, agreeTerms, 
           </label>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-zinc-950 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-70 text-white font-bold py-4 rounded-full text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-[0.98] mt-4"
-        >
-          {loading ? (
-            <span className="inline-flex items-center justify-center gap-2">
-              <span className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin" aria-hidden="true" />
-              Creating account...
-            </span>
-          ) : 'Get Started'}
-        </button>
+        <Button type="submit" variant="primary" size="lg" loading={loading} loadingLabel="Creating account…" fullWidth className="mt-4">
+          Get Started
+        </Button>
       </form>
 
       <div className="mt-6 text-center">
